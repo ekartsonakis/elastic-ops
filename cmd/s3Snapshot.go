@@ -21,6 +21,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var elasticUser string
+var elasticPass string
+var elasticServer string
+var indices string
+// var includeGlobalState bool
+
 // s3SnapshotCmd represents the s3Snapshot command
 var s3SnapshotCmd = &cobra.Command{
 	Use:   "s3Snapshot",
@@ -33,19 +39,28 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("s3Snapshot called")
+		username, _:= cmd.Flags().GetString("username")
+		fmt.Println(username)
+		password, _:= cmd.Flags().GetString("password")
+		fmt.Println(password)
+		server, _:= cmd.Flags().GetString("server")
+		fmt.Println(server)
+		indices, _:= cmd.Flags().GetString("indices")
+		fmt.Println(indices)
+		globalState, _:= cmd.Flags().GetBool("include_global_state")
+		fmt.Println(globalState)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(s3SnapshotCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// s3SnapshotCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// s3SnapshotCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	s3SnapshotCmd.Flags().StringVarP(&elasticUser, "username", "u", "", "Elasticsearch username")
+	s3SnapshotCmd.MarkFlagRequired("username")
+	s3SnapshotCmd.Flags().StringVarP(&elasticPass, "password", "p", "", "Elasticsearch password")
+	s3SnapshotCmd.MarkFlagRequired("password")
+	s3SnapshotCmd.Flags().StringVarP(&elasticServer, "server", "s", "", "IP of elasticsearch instance")
+	s3SnapshotCmd.MarkFlagRequired("server")
+	s3SnapshotCmd.Flags().StringVarP(&indices, "indices", "i", "", "Elastic indices")
+	s3SnapshotCmd.MarkFlagRequired("indices")
+	s3SnapshotCmd.Flags().BoolP("include_global_state", "g", false, "Add Floating Numbers")
 }
