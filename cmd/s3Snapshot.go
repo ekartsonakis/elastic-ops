@@ -17,7 +17,7 @@ package cmd
 
 import (
 	"fmt"
-
+	"elastic-ops/cmd/s3Snapshot"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +25,7 @@ var elasticUser string
 var elasticPass string
 var elasticServer string
 var indices string
+var s3repo string
 // var includeGlobalState bool
 
 // s3SnapshotCmd represents the s3Snapshot command
@@ -49,6 +50,9 @@ to quickly create a Cobra application.`,
 		fmt.Println(indices)
 		globalState, _:= cmd.Flags().GetBool("include_global_state")
 		fmt.Println(globalState)
+		s3Repo, _:= cmd.Flags().GetString("s3repo")
+		fmt.Println(s3Repo)
+		s3snapshot.Snap(username, password, server, indices, s3Repo, globalState)
 	},
 }
 
@@ -62,5 +66,7 @@ func init() {
 	s3SnapshotCmd.MarkFlagRequired("server")
 	s3SnapshotCmd.Flags().StringVarP(&indices, "indices", "i", "", "Elastic indices")
 	s3SnapshotCmd.MarkFlagRequired("indices")
+	s3SnapshotCmd.Flags().StringVarP(&s3repo, "s3repo", "r", "", "S3 repository")
+	s3SnapshotCmd.MarkFlagRequired("s3repo")
 	s3SnapshotCmd.Flags().BoolP("include_global_state", "g", false, "Add Floating Numbers")
 }
