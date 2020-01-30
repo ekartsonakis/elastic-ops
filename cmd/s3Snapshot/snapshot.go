@@ -51,6 +51,12 @@ type TakeSnapResp struct {
 	Error interface{} `json:"error"`
 }
 
+// DeleteSnapResp is taken Snapshots response
+type DeleteSnapResp struct {
+	Acknowledged bool `json:"acknowledged"`
+	Error interface{} `json:"error"`
+}
+
 func getReqWithAuth(username, password, server, endpoint string) (*http.Response, error) {
 
 	url := fmt.Sprintf("https://%s:9200/%s", server, endpoint)
@@ -81,6 +87,20 @@ func putReqWithAuth(username, password, server, endpoint, indices string, global
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(json))
 	req.SetBasicAuth(username, password)
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, err
+}
+
+func deleteReqWithAuth(username, password, server, endpoint string) (*http.Response, error) {
+
+	url := fmt.Sprintf("https://%s:9200/%s", server, endpoint)
+	client := &http.Client{}
+
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	req.SetBasicAuth(username, password)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -141,8 +161,36 @@ func takeNewSnap(username, password, server, s3Repo, indices, snapName string, g
 	return nil
 }
 
+func deleteSnap(username, password, server, s3Repo, snapName string) error{
+	log.Infof("Deleting snapshot %s", snapName)
+	deleteSnapEndpoint := fmt.Sprintf("_snapshot/%s/%s", s3Repo, snapName)
+	resp, err := deleteReqWithAuth(username, password, server, deleteSnapEndpoint)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	// log.Info(string(bodyText))
+	// log.Info(resp.StatusCode)
+	var d DeleteSnapResp
+	if err := json.Unmarshal(bodyText, &d); err != nil {
+		return err
+	}
+	if !d.Acknowledged {
+		return fmt.Errorf("%v", d.Error)
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Response code %s is not accepted", resp.StatusCode)
+	}
+	return nil
+}
+
 // Snap represents the snapshot command
-func Snap(username, password, server, s3Repo, indices, snapName string, onlyList, globalState bool) {
+func Snap(username, password, server, s3Repo, indices, snapName string, onlyList, globalState, delete bool) {
 	
 	password = strings.Replace(password, "$", `\$`, -1)
 	if onlyList {
@@ -151,6 +199,25 @@ func Snap(username, password, server, s3Repo, indices, snapName string, onlyList
 		if err != nil {
 			log.Fatalf("List Snapshots failed: %s", err)
 		}
+	} else if delete {
+		log.Infof("Deleting of %s snapshot.", snapName)
+		_, statusCode, err := getSnapList(username, password, server, s3Repo)
+		if err != nil {
+			log.Fatalf("List Snapshots failed: %s", err)
+		}
+		if statusCode == 200 {
+			if err = deleteSnap(username, password, server, s3Repo, snapName); err != nil {
+				log.Fatalf("Deleting of Snapshot %s was not accepted: %s", snapName, err)
+			}
+
+			// Checking if snapshot deleted
+			log.Info("Checking deletion")
+			_, _, err = getSnapList(username, password, server, s3Repo)
+			if err != nil {
+				log.Fatalf("List Snapshots failed: %s", err)
+			}
+		}
+
 	} else {
 		log.Infof("Taking new snapshot with %s name for indices %s for repository %s ordered", snapName, indices, s3Repo)
 		inprogress, statusCode, err := getSnapList(username, password, server, s3Repo)

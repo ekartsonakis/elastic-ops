@@ -53,6 +53,8 @@ to quickly create a Cobra application.`,
 		fmt.Println(s3Repo)
 		onlyList, _ := cmd.Flags().GetBool("list")
 		fmt.Println(onlyList)
+		deleteSnap, _ := cmd.Flags().GetBool("delete")
+		fmt.Println(deleteSnap)
 		indices, _ := cmd.Flags().GetString("indices")
 
 		if !onlyList {
@@ -67,7 +69,7 @@ to quickly create a Cobra application.`,
 		snapName, _ := cmd.Flags().GetString("snap_name")
 		fmt.Println(snapName)
 
-		s3snapshot.Snap(username, password, server, s3Repo, indices, snapName, onlyList, globalState)
+		s3snapshot.Snap(username, password, server, s3Repo, indices, snapName, onlyList, globalState, deleteSnap)
 	},
 }
 
@@ -83,6 +85,7 @@ func init() {
 	s3SnapshotCmd.MarkFlagRequired("s3repo")
 
 	s3SnapshotCmd.Flags().BoolP("list", "l", false, "Only list available snapshots. If given no new snapshot will be taken.")
+	s3SnapshotCmd.Flags().BoolP("delete", "d", false, "Delete a specific snapshot. If given no new snapshot will be taken.")
 
 	s3SnapshotCmd.Flags().StringVarP(&indices, "indices", "i", "", "Elastic indices. If special character is included put the string in double quotes.")
 	s3SnapshotCmd.Flags().StringVarP(&snap, "snap_name", "n", "%3Csnapshot-%7Bnow%2Fd%7D%3E", "New snapshot name. If not given then snapshot-Y.M.D will be given.")
