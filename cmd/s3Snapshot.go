@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"elastic-ops/cmd/s3Snapshot"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,8 @@ var elasticPass string
 var elasticServer string
 var indices string
 var s3repo string
+var snap string
+
 // var includeGlobalState bool
 
 // s3SnapshotCmd represents the s3Snapshot command
@@ -40,19 +43,31 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("s3Snapshot called")
-		username, _:= cmd.Flags().GetString("username")
+		username, _ := cmd.Flags().GetString("username")
 		fmt.Println(username)
-		password, _:= cmd.Flags().GetString("password")
+		password, _ := cmd.Flags().GetString("password")
 		fmt.Println(password)
-		server, _:= cmd.Flags().GetString("server")
+		server, _ := cmd.Flags().GetString("server")
 		fmt.Println(server)
-		indices, _:= cmd.Flags().GetString("indices")
-		fmt.Println(indices)
-		globalState, _:= cmd.Flags().GetBool("include_global_state")
-		fmt.Println(globalState)
-		s3Repo, _:= cmd.Flags().GetString("s3repo")
+		s3Repo, _ := cmd.Flags().GetString("s3repo")
 		fmt.Println(s3Repo)
-		s3snapshot.Snap(username, password, server, indices, s3Repo, globalState)
+		onlyList, _ := cmd.Flags().GetBool("list")
+		fmt.Println(onlyList)
+		indices, _ := cmd.Flags().GetString("indices")
+
+		if !onlyList {
+			fmt.Println(indices)
+			if indices == "" {
+				log.Fatal("Indices to snapshot should be given")
+			}
+		}
+		globalState, _ := cmd.Flags().GetBool("include_global_state")
+		fmt.Println(globalState)
+
+		snapName, _ := cmd.Flags().GetString("snap_name")
+		fmt.Println(snapName)
+
+		s3snapshot.Snap(username, password, server, s3Repo, indices, snapName, onlyList, globalState)
 	},
 }
 
@@ -64,9 +79,12 @@ func init() {
 	s3SnapshotCmd.MarkFlagRequired("password")
 	s3SnapshotCmd.Flags().StringVarP(&elasticServer, "server", "s", "", "IP of elasticsearch instance")
 	s3SnapshotCmd.MarkFlagRequired("server")
-	s3SnapshotCmd.Flags().StringVarP(&indices, "indices", "i", "", "Elastic indices")
-	s3SnapshotCmd.MarkFlagRequired("indices")
 	s3SnapshotCmd.Flags().StringVarP(&s3repo, "s3repo", "r", "", "S3 repository")
 	s3SnapshotCmd.MarkFlagRequired("s3repo")
+
+	s3SnapshotCmd.Flags().BoolP("list", "l", false, "Only list available snapshots. If given no new snapshot will be taken.")
+
+	s3SnapshotCmd.Flags().StringVarP(&indices, "indices", "i", "", "Elastic indices. If special character is included put the string in double quotes.")
+	s3SnapshotCmd.Flags().StringVarP(&snap, "snap_name", "n", "%3Csnapshot-%7Bnow%2Fd%7D%3E", "New snapshot name. If not given then snapshot-Y.M.D will be given.")
 	s3SnapshotCmd.Flags().BoolP("include_global_state", "g", false, "Add Floating Numbers")
 }
